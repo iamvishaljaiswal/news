@@ -1,29 +1,22 @@
+<!DOCTYPE html>
 <html>
 <head>
+    <title>RSS Feed Loader</title>
     <style>
-        body {
-            font-family: Arial;
-            padding: 20px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 40px;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 10px;
-        }
-        th {
-            background: #222;
-            color: #fff;
-        }
+        body { font-family: Arial; padding: 20px; background-color: #f4f4f4; }
+        h2 { color: #333; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 40px; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background: #222; color: #fff; }
+        tr:nth-child(even) { background: #f9f9f9; }
+        a { color: #0073aa; text-decoration: none; font-weight: bold; }
+        a:hover { text-decoration: underline; }
+        .loading { font-style: italic; color: #666; }
     </style>
 </head>
 <body>
 
 <h2>Top 10 TechNadu Blog Posts</h2>
-
 <table id="techTable">
     <thead>
         <tr>
@@ -33,11 +26,10 @@
             <th>Author Name</th>
         </tr>
     </thead>
-    <tbody></tbody>
+    <tbody><tr><td colspan="4" class="loading">Loading TechNadu feed...</td></tr></tbody>
 </table>
 
 <h2>Top 10 Wordfence Blog Posts</h2>
-
 <table id="wordfenceTable">
     <thead>
         <tr>
@@ -47,43 +39,62 @@
             <th>Author Name</th>
         </tr>
     </thead>
-    <tbody></tbody>
+    <tbody><tr><td colspan="4" class="loading">Loading Wordfence feed...</td></tr></tbody>
 </table>
 
 <script>
-function loadFeed(rssUrl, tableId, defaultAuthor) {
-    const apiUrl = "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(rssUrl);
+async function loadFeed(rssUrl, tableId, defaultAuthor) {
+    const tbody = document.querySelector(`#${tableId} tbody`);
+    
+    try {
+        // Use AllOrigins proxy to get the RAW XML string to bypass CORS
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
+        const response = await fetch(proxyUrl);
+        const data = await response.json();
+        const xmlString = data.contents; // This is the raw XML text
 
-    fetch(apiUrl)
-    .then(res => res.json())
-    .then(data => {
-        const posts = data.items.slice(0, 10);
-        const tbody = document.querySelector(`#${tableId} tbody`);
+        // Use built-in JavaScript DOMParser to parse the XML
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xmlString, "text/xml");
+        const items = Array.from(xmlDoc.querySelectorAll("item")).slice(0, 10);
 
-        posts.forEach((post, index) => {
+        tbody.innerHTML = ""; // Clear loading message
+
+        items.forEach((item, index) => {
+            const title = item.querySelector("title").textContent;
+            const link = item.querySelector("link").textContent;
+            
+            // Format Date
+            const pubDate = item.querySelector("pubDate").textContent;
+            const d = new Date(pubDate);
+            const dateStr = String(d.getDate()).padStart(2, '0') + "/" +
+                            String(d.getMonth() + 1).padStart(2, '0') + "/" +
+                            d.getFullYear();
+
+            // Extract Author (Wordfence uses dc:creator namespace)
+            let author = item.getElementsByTagName("dc:creator")[0]?.textContent || 
+                         item.querySelector("author")?.textContent || 
+                         defaultAuthor;
+
             const tr = document.createElement("tr");
-
-            const d = new Date(post.pubDate);
-            const date = String(d.getDate()).padStart(2, '0') + "/" +
-                         String(d.getMonth() + 1).padStart(2, '0') + "/" +
-                         d.getFullYear();
-
             tr.innerHTML = `
                 <td>${index + 1}</td>
-                <td><a href="${post.link}" target="_blank">${post.title}</a></td>
-                <td>${date}</td>
-                <td>${post.author || defaultAuthor}</td>
+                <td><a href="${link}" target="_blank">${title}</a></td>
+                <td>${dateStr}</td>
+                <td>${author}</td>
             `;
-
             tbody.appendChild(tr);
         });
-    })
-    .catch(err => console.error("Error:", err));
+
+    } catch (err) {
+        console.error("Error loading " + rssUrl, err);
+        tbody.innerHTML = `<tr><td colspan="4" style="color:red">Failed to load feed.</td></tr>`;
+    }
 }
 
-// Load both feeds
-loadFeed("https://www.technadu.com/security/news/feed", "techTable", "TechNadu");
-loadFeed("https://www.wordfence.com/blog/feed/", "wordfenceTable", "Wordfence");
+// Execute
+loadFeed("https://www.technadu.com/security/news/feed/", "techTable", "TechNadu Team");
+loadFeed("https://www.wordfence.com/blog/feed/", "wordfenceTable", "Wordfence Team");
 </script>
 
 </body>
