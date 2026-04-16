@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Wordfence Blog Feed</title>
+    <style>
+        body {
+            font-family: Arial;
+            padding: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+        }
+        th {
+            background: #222;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Top 10 Wordfence Blog Posts</h2>
+
+<table id="feedTable">
+    <thead>
+        <tr>
+            <th>SN</th>
+            <th>Post Title</th>
+            <th>Date</th>
+            <th>Author Name</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<script>
+const rssUrl = "https://www.wordfence.com/blog/feed/";
+const apiUrl = "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(rssUrl);
+
+fetch(apiUrl)
+.then(res => res.json())
+.then(data => {
+    const posts = data.items.slice(0, 10);
+    const tbody = document.querySelector("#feedTable tbody");
+
+    posts.forEach((post, index) => {
+        const tr = document.createElement("tr");
+
+const d = new Date(post.pubDate);
+const date = String(d.getDate()).padStart(2, '0') + "/" +
+             String(d.getMonth() + 1).padStart(2, '0') + "/" +
+             d.getFullYear();
+
+        tr.innerHTML = `
+            <td>${index + 1}</td>
+            <td><a href="${post.link}" target="_blank">${post.title}</a></td>
+            <td>${date}</td>
+            <td>${post.author || "Wordfence"}</td>
+        `;
+
+        tbody.appendChild(tr);
+    });
+})
+.catch(err => {
+    console.error("Error fetching feed:", err);
+});
+</script>
+
+</body>
+</html>
