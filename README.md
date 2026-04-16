@@ -50,10 +50,10 @@ fetch(apiUrl)
     posts.forEach((post, index) => {
         const tr = document.createElement("tr");
 
-const d = new Date(post.pubDate);
-const date = String(d.getDate()).padStart(2, '0') + "/" +
-             String(d.getMonth() + 1).padStart(2, '0') + "/" +
-             d.getFullYear();
+        const d = new Date(post.pubDate);
+        const date = String(d.getDate()).padStart(2, '0') + "/" +
+                     String(d.getMonth() + 1).padStart(2, '0') + "/" +
+                     d.getFullYear();
 
         tr.innerHTML = `
             <td>${index + 1}</td>
